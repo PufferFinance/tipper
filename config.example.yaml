@@ -1,0 +1,16 @@
+# tipper: every `interval_secs`, each account below its `target` is topped up to it from the
+# funder key (FUNDER_KEY in the environment, never in this file). Amounts in ETH.
+rpc_url: https://ethereum-sepolia-rpc.publicnode.com   # or RPC_URL in the environment
+interval_secs: 600
+# An upper bound on a single top-up, so a typo in a target cannot drain the funder.
+max_topup: 2
+accounts:
+  - name: batcher
+    address: "0x0000000000000000000000000000000000000001"
+    target: 1
+  - name: proposer
+    address: "0x0000000000000000000000000000000000000002"
+    target: 1
+  - name: relayer
+    address: "0x0000000000000000000000000000000000000003"
+    target: 0.5

@@ -1,0 +1,4 @@
+# The stable subset of unifi-op's rustfmt.toml; the nightly-only keys there need nightly to apply.
+reorder_imports = true
+use_small_heuristics = "Max"
+max_width = 120

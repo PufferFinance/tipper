@@ -18,7 +18,7 @@ accounts:
     target: 1           # ETH; topped up to this when below
 ```
 
-The funder's private key is read from `FUNDER_KEY` only, never from the file.
+The funder's private key comes from `FUNDER_KEY`, or from a file named by `--funder-key-file` (`FUNDER_KEY_FILE`) for stacks that deliver secrets as files; never from the config.
 
 ## Running
 

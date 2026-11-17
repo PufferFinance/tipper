@@ -28,8 +28,11 @@ struct Args {
     #[arg(long, default_value = "/etc/tipper/config.yaml")]
     config: PathBuf,
     /// The funder's private key, hex. Environment only: never put it in the config.
-    #[arg(long, env = "FUNDER_KEY", hide_env_values = true)]
+    #[arg(long, env = "FUNDER_KEY", hide_env_values = true, conflicts_with = "funder_key_file")]
     funder_key: Option<String>,
+    /// A file holding the funder's private key, hex: for stacks that deliver secrets as files.
+    #[arg(long, env = "FUNDER_KEY_FILE")]
+    funder_key_file: Option<PathBuf>,
     /// Overrides `rpc_url` from the config.
     #[arg(long, env = "RPC_URL")]
     rpc_url: Option<String>,
@@ -98,13 +101,20 @@ async fn main() -> Result<()> {
     let rpc_url = args.rpc_url.or(config.rpc_url).context("rpc_url: set it in the config or RPC_URL")?;
     let max_topup = config.max_topup.map(eth).transpose()?;
 
-    // A dry run without a key signs nothing, so any signer does; it keeps one provider type.
-    let signer = match &args.funder_key {
-        Some(key) => key.parse::<PrivateKeySigner>().context("FUNDER_KEY is not a private key")?,
-        None if args.dry_run => PrivateKeySigner::random(),
-        None => bail!("FUNDER_KEY is not set (use --dry-run to only read balances)"),
+    let key = match (&args.funder_key, &args.funder_key_file) {
+        (Some(key), _) => Some(key.clone()),
+        (None, Some(path)) => Some(
+            std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?.trim().to_string(),
+        ),
+        (None, None) => None,
     };
-    let funder = args.funder_key.is_some().then(|| signer.address());
+    // A dry run without a key signs nothing, so any signer does; it keeps one provider type.
+    let signer = match &key {
+        Some(key) => key.parse::<PrivateKeySigner>().context("the funder key is not a private key")?,
+        None if args.dry_run => PrivateKeySigner::random(),
+        None => bail!("no funder key: set FUNDER_KEY or --funder-key-file (or use --dry-run to only read balances)"),
+    };
+    let funder = key.is_some().then(|| signer.address());
     let provider = ProviderBuilder::new()
         .wallet(EthereumWallet::from(signer))
         .connect(&rpc_url)
